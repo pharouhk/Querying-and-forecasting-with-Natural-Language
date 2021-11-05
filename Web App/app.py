@@ -1,7 +1,12 @@
 import dash
 import pandas as pd
-import dash_core_components as dcc
-import dash_html_components as html
+import pandasql as ps
+import json
+import requests
+# import dash_core_components as dcc
+from dash import dcc
+# import dash_html_components as html
+from dash import html
 from dash.dependencies import Input, Output, State
 import plotly.express as px
 from dash.exceptions import PreventUpdate
@@ -66,6 +71,7 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children 
               State('input-1-state', 'value'))
 def update_output(n_clicks, input1):
   if n_clicks ==0:
+    #This is data that will be shown when the page is first loaded without any user interactions yet
     queried_df = df.iloc[:100, :]
     fig = px.line(queried_df, x="Date", y="Close", title="Bitcoin Closing Price Trend")
 
@@ -77,32 +83,43 @@ def update_output(n_clicks, input1):
     return fig
       
   else:
-    try:
-      #input > aws endpoint > sql > python logic goes here...
-      queried_df = 0 #placed to intentionally trigger the exception for now...
-      fig = px.line(queried_df, x="Date", y="Close", 
-        title="This is a display of the answer to your query: {}". format(input1))
+      # Process flow: input -> API GW -> model -> sql 
 
-      fig.update_layout(
-        plot_bgcolor=colors['background'],
-        paper_bgcolor=colors['background'],
-        font_color=colors['text']
-        )
-      return fig
+      #uncomment when endpoints are live and lambda function is available
+      url = "https://9u91x3ikx4.execute-api.us-east-1.amazonaws.com/Production"
+      
+      headers = {"Content-Type": "application/json", 'Access-Control-Allow-Origin' : '*'}
+      r = requests.request("POST", url, headers=headers, data=input1)
+      
+      response = json.loads(r.text)
+      #this is for basic logging on the console
+      print(response)
+      if response["Response Type"] == "prediction": #This handles prediction queries from the user
+        predictions = response["Response"]
+        fig = px.line(y=predictions, title="It is expected that Bitcoin would would reach : {} USD". format(predictions[-1]))
+      else: #This handles descriptive queries from the user
+        try:#try to use the returned query on the dataframe
+          sql_query = response["Response"]
+          modified_query = sql_query.replace("<pad> ", "").replace("</s>", "").replace("table", "df").replace("( USD )", "")
+          queried_df = ps.sqldf(modified_query)
+          #check to see the nature of the output dataframe and visualize accordingly
+          if len(queried_df)==1: #plot the output as a bar
+            fig = px.bar(queried_df,
+              title="This is a visualization of the answer to your query: {}". format(input1))
+          else: #plot the output as a line
+            fig = px.line(queried_df, y='Close',
+              title="This is a visualization of the answer to your query: {}". format(input1))
+        except: #return the query and other information to the user
+          fig = px.line(x=[1,2,3,4,5], y=[0,0,0,0,0], 
+          title="We seem to be unable to extract insights from your question: '{}'. Try another question".format(modified_query))
 
-    except:
-      fig = px.line(x=[1,2,3,4,5], y=[0,0,0,0,0], 
-        title="We seem to be unable to extract insights from your question: '{}'. Try another question".format(input1))
+  fig.update_layout(
+    plot_bgcolor=colors['background'],
+    paper_bgcolor=colors['background'],
+    font_color=colors['text']
+    )
+  return fig
 
-      fig.update_layout(
-        plot_bgcolor=colors['background'],
-        paper_bgcolor=colors['background'],
-        font_color=colors['text']
-        )
-      return fig
-
-
-  
 
 if __name__ == '__main__':
     app.run_server(debug=True)
