@@ -6,3 +6,12 @@ This project will leverage the pre-trained model from  https://huggingface.co/mr
 
 
 Finally, The notebook and Python files provided here, once completed, result in a simple web app dashboard which interacts with a deployed text-to-SQL model generating queries from user's questions typed in English, and visualizes the answers. The dashboard can also forecast based on user's questions.
+
+Note:
+Screenshots from the web app are the images named:
+1. Result_forecast_query(1),2,3
+2. Result_query(1),2,3
+
+In addition the capstone proposal and project report are the following files named:
+1. Proposal.pdf
+2. Project Report.pdf
