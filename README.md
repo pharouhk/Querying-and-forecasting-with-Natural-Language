@@ -11,7 +11,3 @@ Note:
 Screenshots from the web app are the images named:
 1. Result_forecast_query(1),2,3
 2. Result_query(1),2,3
-
-In addition the capstone proposal and project report are the following files named:
-1. Proposal.pdf
-2. Project Report.pdf
